@@ -22,7 +22,7 @@
 #include "net/gnrc/ipv6/hdr.h"
 #include "utlist.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 gnrc_pktsnip_t *gnrc_icmpv6_echo_build(uint8_t type, uint16_t id, uint16_t seq,
@@ -31,17 +31,20 @@ gnrc_pktsnip_t *gnrc_icmpv6_echo_build(uint8_t type, uint16_t id, uint16_t seq,
     gnrc_pktsnip_t *pkt;
     icmpv6_echo_t *echo;
 
-    if ((pkt = gnrc_icmpv6_build(NULL, type, 0, data_len + sizeof(icmpv6_echo_t))) == NULL) {
+    if ((pkt = gnrc_icmpv6_build(NULL, type, 0, data_len + sizeof(icmpv6_echo_t))) == NULL)
+    {
         return NULL;
     }
 
     DEBUG("icmpv6_echo: Building echo message with type=%" PRIu8 "id=%" PRIu16
-          ", seq=%" PRIu16, type, id, seq);
+          ", seq=%" PRIu16,
+          type, id, seq);
     echo = (icmpv6_echo_t *)pkt->data;
     echo->id = byteorder_htons(id);
     echo->seq = byteorder_htons(seq);
 
-    if (data != NULL) {
+    if (data != NULL)
+    {
         memcpy(echo + 1, data, data_len);
 #if defined(MODULE_OD) && ENABLE_DEBUG
         DEBUG(", payload:\n");
@@ -59,9 +62,11 @@ void gnrc_icmpv6_echo_req_handle(gnrc_netif_t *netif, ipv6_hdr_t *ipv6_hdr,
     uint8_t *payload = ((uint8_t *)echo) + sizeof(icmpv6_echo_t);
     gnrc_pktsnip_t *hdr, *pkt;
 
-    if ((echo == NULL) || (len < sizeof(icmpv6_echo_t))) {
+    if ((echo == NULL) || (len < sizeof(icmpv6_echo_t)))
+    {
         DEBUG("icmpv6_echo: echo was NULL or len (%" PRIu16
-              ") was < sizeof(icmpv6_echo_t)\n", len);
+              ") was < sizeof(icmpv6_echo_t)\n",
+              len);
         return;
     }
 
@@ -69,19 +74,23 @@ void gnrc_icmpv6_echo_req_handle(gnrc_netif_t *netif, ipv6_hdr_t *ipv6_hdr,
                                  byteorder_ntohs(echo->seq), payload,
                                  len - sizeof(icmpv6_echo_t));
 
-    if (pkt == NULL) {
+    if (pkt == NULL)
+    {
         DEBUG("icmpv6_echo: no space left in packet buffer\n");
         return;
     }
 
-    if (ipv6_addr_is_multicast(&ipv6_hdr->dst)) {
+    if (ipv6_addr_is_multicast(&ipv6_hdr->dst))
+    {
         hdr = gnrc_ipv6_hdr_build(pkt, NULL, &ipv6_hdr->src);
     }
-    else {
+    else
+    {
         hdr = gnrc_ipv6_hdr_build(pkt, &ipv6_hdr->dst, &ipv6_hdr->src);
     }
 
-    if (hdr == NULL) {
+    if (hdr == NULL)
+    {
         DEBUG("icmpv6_echo: no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
         return;
@@ -90,7 +99,8 @@ void gnrc_icmpv6_echo_req_handle(gnrc_netif_t *netif, ipv6_hdr_t *ipv6_hdr,
     pkt = hdr;
     hdr = gnrc_netif_hdr_build(NULL, 0, NULL, 0);
 
-    if (hdr == NULL) {
+    if (hdr == NULL)
+    {
         DEBUG("icmpv6_echo: no space left in packet buffer\n");
         gnrc_pktbuf_release(pkt);
         return;
@@ -101,7 +111,8 @@ void gnrc_icmpv6_echo_req_handle(gnrc_netif_t *netif, ipv6_hdr_t *ipv6_hdr,
     pkt = gnrc_pkt_prepend(pkt, hdr);
 
     if (!gnrc_netapi_dispatch_send(GNRC_NETTYPE_IPV6, GNRC_NETREG_DEMUX_CTX_ALL,
-                                   pkt)) {
+                                   pkt))
+    {
         DEBUG("icmpv6_echo: no receivers for IPv6 packets\n");
         gnrc_pktbuf_release(pkt);
     }

@@ -31,7 +31,7 @@
 #include "net/gnrc/icmpv6.h"
 #include "net/gnrc/icmpv6/echo.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 static inline uint16_t _calc_csum(gnrc_pktsnip_t *hdr,
@@ -41,7 +41,8 @@ static inline uint16_t _calc_csum(gnrc_pktsnip_t *hdr,
     uint16_t csum = 0;
     uint16_t len = (uint16_t)hdr->size;
 
-    while (payload && (payload != hdr)) {
+    while (payload && (payload != hdr))
+    {
         csum = inet_csum_slice(csum, payload->data, payload->size, len);
         len += (uint16_t)payload->size;
         payload = payload->next;
@@ -68,7 +69,8 @@ void gnrc_icmpv6_demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 
     assert(ipv6 != NULL);
 
-    if (icmpv6->size < sizeof(icmpv6_hdr_t)) {
+    if (icmpv6->size < sizeof(icmpv6_hdr_t))
+    {
         DEBUG("icmpv6: packet too short.\n");
         gnrc_pktbuf_release(pkt);
         return;
@@ -78,42 +80,45 @@ void gnrc_icmpv6_demux(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
 
     hdr = (icmpv6_hdr_t *)icmpv6->data;
 
-    if (_calc_csum(icmpv6, ipv6, pkt)) {
+    if (_calc_csum(icmpv6, ipv6, pkt))
+    {
         DEBUG("icmpv6: wrong checksum.\n");
         gnrc_pktbuf_release(pkt);
         return;
     }
 
-    switch (hdr->type) {
+    switch (hdr->type)
+    {
         /* TODO: handle ICMPv6 errors */
 #ifdef MODULE_GNRC_ICMPV6_ECHO
-        case ICMPV6_ECHO_REQ:
-            DEBUG("icmpv6: handle echo request.\n");
-            gnrc_icmpv6_echo_req_handle(netif, (ipv6_hdr_t *)ipv6->data,
-                                        (icmpv6_echo_t *)hdr, icmpv6->size);
-            break;
+    case ICMPV6_ECHO_REQ:
+        DEBUG("icmpv6: handle echo request.\n");
+        gnrc_icmpv6_echo_req_handle(netif, (ipv6_hdr_t *)ipv6->data,
+                                    (icmpv6_echo_t *)hdr, icmpv6->size);
+        break;
 #endif
 
-        case ICMPV6_RTR_SOL:
-        case ICMPV6_RTR_ADV:
-        case ICMPV6_NBR_SOL:
-        case ICMPV6_NBR_ADV:
-        case ICMPV6_REDIRECT:
-        case ICMPV6_DAR:
-        case ICMPV6_DAC:
-            DEBUG("icmpv6: NDP message received. Handle with gnrc_ipv6_nib\n");
-            gnrc_ipv6_nib_handle_pkt(netif, ipv6->data, hdr, icmpv6->size);
-            break;
+    case ICMPV6_RTR_SOL:
+    case ICMPV6_RTR_ADV:
+    case ICMPV6_NBR_SOL:
+    case ICMPV6_NBR_ADV:
+    case ICMPV6_REDIRECT:
+    case ICMPV6_DAR:
+    case ICMPV6_DAC:
+        DEBUG("icmpv6: NDP message received. Handle with gnrc_ipv6_nib\n");
+        gnrc_ipv6_nib_handle_pkt(netif, ipv6->data, hdr, icmpv6->size);
+        break;
 
-        default:
-            DEBUG("icmpv6: unknown type field %u\n", hdr->type);
-            (void)netif;
-            break;
+    default:
+        DEBUG("icmpv6: unknown type field %u\n", hdr->type);
+        (void)netif;
+        break;
     }
 
     /* ICMPv6-all will be send in gnrc_ipv6.c so only dispatch of subtypes is
      * needed */
-    if (!gnrc_netapi_dispatch_receive(GNRC_NETTYPE_ICMPV6, hdr->type, pkt)) {
+    if (!gnrc_netapi_dispatch_receive(GNRC_NETTYPE_ICMPV6, hdr->type, pkt))
+    {
         DEBUG("icmpv6: no one interested in type %d\n", hdr->type);
         gnrc_pktbuf_release(pkt);
     }
@@ -125,7 +130,8 @@ gnrc_pktsnip_t *gnrc_icmpv6_build(gnrc_pktsnip_t *next, uint8_t type,
     gnrc_pktsnip_t *pkt;
     icmpv6_hdr_t *icmpv6;
 
-    if ((pkt = gnrc_pktbuf_add(next, NULL, size, GNRC_NETTYPE_ICMPV6)) == NULL) {
+    if ((pkt = gnrc_pktbuf_add(next, NULL, size, GNRC_NETTYPE_ICMPV6)) == NULL)
+    {
         DEBUG("icmpv6: no space left in packet buffer\n");
         return NULL;
     }
@@ -144,16 +150,19 @@ int gnrc_icmpv6_calc_csum(gnrc_pktsnip_t *hdr, gnrc_pktsnip_t *pseudo_hdr)
 {
     uint32_t csum = 0;
 
-    if (hdr == NULL) {
+    if (hdr == NULL)
+    {
         return -EFAULT;
     }
-    if (hdr->type != GNRC_NETTYPE_ICMPV6) {
+    if (hdr->type != GNRC_NETTYPE_ICMPV6)
+    {
         return -EBADMSG;
     }
 
     csum = _calc_csum(hdr, pseudo_hdr, hdr->next);
 
-    if (csum == 0) {
+    if (csum == 0)
+    {
         return -ENOENT;
     }
 
